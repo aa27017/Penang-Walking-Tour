@@ -1,0 +1,20 @@
+{
+  "name": "歴史散策ウォーキングツアー（ペナン・マラッカ）",
+  "short_name": "歴史散策",
+  "description": "ペナン（ジョージタウン）とマラッカの世界遺産地区を日本語の解説付きで歩くウォーキングツアー",
+  "lang": "ja",
+  "dir": "ltr",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f4ef",
+  "theme_color": "#0b5d63",
+  "categories": ["travel", "education"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
