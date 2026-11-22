@@ -369,7 +369,8 @@
     if (S.pos) {
       var d = dist(S.pos, s), b = bearing(S.pos, s);
       rot = S.heading != null ? (b - S.heading + 360) % 360 : b;
-      distLine = 'あと ' + fmtDist(d) + '・' + dirName(b) + (kids() ? 'のほう' : '方向') + '（徒歩約' + Math.max(1, Math.round(d / WALK_M_PER_MIN)) + '分）';
+      distLine = 'あと ' + fmtDist(d) + '・' + dirName(b) + (kids() ? 'のほう' : '方向') +
+        (st.leg && d > 1500 ? '（' + esc((st.leg.modes || []).join('・')) + 'で移動）' : '（徒歩約' + Math.max(1, Math.round(d / WALK_M_PER_MIN)) + '分）');
     } else {
       distLine = '<button class="btn small" data-act="locate">現在地をONにして距離を表示</button>';
     }
@@ -425,7 +426,10 @@
     var stay = req.reduce(function (a, x) { return a + (x.stay_min || 0); }, 0);
     $('#courseInfo').innerHTML = '<h2>' + esc(c.name) + '</h2>' +
       '<div class="meta-line"><span class="pill">⏱ ' + esc(c.duration_label) + '</span><span class="pill">' + esc(c.walk_note || '') + '</span><span class="pill">滞在の目安 計' + fmtMin(stay) + '</span></div>' +
+      (c.best_time ? '<p class="best-time">🕗 <strong>' + (kids() ? 'おすすめの時間' : 'おすすめの時間帯') + '</strong>：' + esc(c.best_time) + '</p>' : '') +
+      (c.start ? '<p class="small-text">🚩 ' + esc(c.start) + '</p>' : '') +
       '<p>' + esc(c.description) + '</p>' +
+      (kids() && c.kids_guide ? kidsGuideHtml(c.kids_guide) : '') +
       '<p class="progress-text">' + (kids() ? 'スタンプ ' : '訪問済み ') + done + ' / ' + req.length + '</p>';
 
     var st = c.stops[cur], s = S.spots[st.id];
@@ -438,7 +442,9 @@
       '<button class="btn" data-act="listen" data-id="' + esc(s.id) + '">▶ ' + (kids() ? 'きく' : '聞く') + '</button></div>' +
       '<div class="now-nav"><button class="btn" data-act="prev" ' + (cur === 0 ? 'disabled' : '') + '>◀ ' + (kids() ? 'もどる' : '前へ') + '</button>' +
       '<button class="btn primary big" data-act="next">' + (kids() ? 'ついた！つぎへ ▶' : '次へ ▶') + '</button></div>' +
-      (c.transport ? '<p class="small-text">🚗 ' + esc(s.transport || c.walk_note) + '</p>' : '') +
+      (st.leg ? '<div class="leg-box"><div class="leg-h">' + (kids() ? 'ここへの行きかた' : 'ここへの行き方') + '</div>' + legHtml(st.leg) + '</div>' :
+        (c.transport ? '<p class="small-text">🚗 ' + esc(s.transport || c.walk_note) + '</p>' : '')) +
+      (st.best_time ? '<p class="small-text">🕗 おすすめ：' + esc(st.best_time) + '</p>' : '') +
       '</div>';
 
     $('#stampPanel').innerHTML = kids() ? stampPanelHtml(c) : '';
@@ -448,7 +454,8 @@
     var html = '';
     c.stops.forEach(function (x, i) {
       var sp = S.spots[x.id]; if (!sp) return;
-      if (i > 0 && legs[i - 1] != null) html += '<li class="leg">↓ 徒歩 約' + fmtDist(legs[i - 1]) + '（' + Math.max(1, Math.round(legs[i - 1] / WALK_M_PER_MIN)) + '分）</li>';
+      if (x.leg) html += '<li class="leg leg-transit">' + legHtml(x.leg, true) + '</li>';
+      else if (i > 0 && legs[i - 1] != null) html += '<li class="leg">↓ 徒歩 約' + fmtDist(legs[i - 1]) + '（' + Math.max(1, Math.round(legs[i - 1] / WALK_M_PER_MIN)) + '分）</li>';
       else if (i > 0 && c.transport) html += '<li class="leg">↓ ' + (sp.transport && /Grab/.test(sp.transport) ? 'Grabで移動' : '移動') + '</li>';
       html += '<li class="stop' + (i === cur ? ' is-current' : '') + (S.visited[x.id] ? ' is-visited' : '') + (x.optional ? ' is-optional' : '') + '">' +
         '<button class="num" data-act="goto" data-i="' + i + '" aria-label="' + (i + 1) + '番を目的地にする" style="border:0;cursor:pointer">' + (i + 1) + '</button>' +
@@ -462,12 +469,27 @@
     renderNav();
   }
 
+  // 交通移動の区間（stops[].leg）
+  var MODE_ICON = { 'KTM': '🚆', 'LRT': '🚈', 'MRT': '🚇', 'モノレール': '🚝', 'GO KL': '🚌', 'バス': '🚌', 'Grab': '🚗', '徒歩': '🚶' };
+  function legHtml(leg, inList) {
+    var modes = (leg.modes || []).map(function (m) { return '<span class="mode">' + (MODE_ICON[m] || '➡️') + ' ' + esc(m) + '</span>'; }).join('');
+    return (inList ? '<span class="leg-arrow">↓</span> ' : '') + '<span class="modes">' + modes + '</span>' +
+      (leg.time ? ' <strong class="leg-time">' + esc(leg.time) + '</strong>' : '') +
+      (leg.verified === false ? ' <span class="badge-check">要確認</span>' : '') +
+      '<div class="leg-text">' + esc(leg.text || '') + (leg.note ? '<br><small>' + esc(leg.note) + '</small>' : '') + '</div>';
+  }
+  function kidsGuideHtml(g) {
+    return '<div class="card kids-guide"><h3>🚃 ' + safeRuby(g.title) + '</h3><ol>' +
+      g.steps.map(function (s) { return '<li>' + safeRuby(s) + '</li>'; }).join('') + '</ol>' +
+      (g.note ? '<p class="small-text">' + safeRuby(g.note) + '</p>' : '') + '</div>';
+  }
+
   function restHtml(r, noTitle) {
-    return '<div class="rest-card">' + (noTitle ? '' : '<h4>🥤 ' + esc(r.title) + '</h4>') +
+    return '<div class="rest-card">' + (noTitle ? '' : '<h4>🥤 ' + safeRuby(r.title) + '</h4>') +
       '<ul>' + r.places.map(function (p) {
         return '<li>' + esc(p.name) + ' <button class="btn small" data-act="showmap" data-lat="' + p.lat + '" data-lng="' + p.lng + '">ちずで見る</button></li>';
       }).join('') + '</ul>' +
-      '<small>' + esc(r.shade || '') + '<br>※お店の営業時間は要確認（OpenStreetMapの情報）。水をのんで、日かげで休もう。</small></div>';
+      '<small>' + safeRuby(r.shade || '') + '<br>※お店の営業時間は要確認（OpenStreetMapの情報）。水をのんで、日かげで休もう。</small></div>';
   }
 
   function stampPanelHtml(c) {
@@ -518,7 +540,7 @@
     afterVisitChange(st.id, !wasVisited);
     if (i >= c.stops.length - 1 && !kids()) toast('おつかれさまでした！コース完了です');
     if (rest) {
-      openModal('<h2>🥤 ' + esc(rest.title) + '</h2><p>2〜3か所まわったら、ひと休み。水をのんで、すずしいところで休もう！</p>' + restHtml(rest, true) +
+      openModal('<h2>🥤 ' + safeRuby(rest.title) + '</h2><p>2〜3か所まわったら、ひと休み。水をのんで、すずしいところで休もう！</p>' + restHtml(rest, true) +
         '<div class="btn-row"><button class="btn primary big" data-act="closemodal" style="flex:1">休けいおわり！つぎへ</button></div>');
     }
   }
@@ -606,10 +628,10 @@
   function kidsDetail(s, list) {
     var h = '<div class="kids-text speakable">' + sentHtml(s.kids_text || '', true, list) + '</div>';
     if (s.kids_quiz) {
-      list.push('みつけてみよう。');
+      list.push(s.kids_quiz.type === 'move' ? 'からだをうごかそう。' : 'みつけてみよう。');
       var qi = list.length;
       list.push(speechText(s.kids_quiz.question));
-      h += '<div class="quiz"><div class="q"><span class="sent" data-si="' + (qi - 1) + '">🔍 みつけてみよう！</span><br><span class="sent" data-si="' + qi + '">' + safeRuby(s.kids_quiz.question) + '</span></div>' +
+      h += '<div class="quiz' + (s.kids_quiz.type === 'move' ? ' move' : '') + '"><div class="q"><span class="sent" data-si="' + (qi - 1) + '">' + (s.kids_quiz.type === 'move' ? '🏃 からだをうごかそう！' : '🔍 みつけてみよう！') + '</span><br><span class="sent" data-si="' + qi + '">' + safeRuby(s.kids_quiz.question) + '</span></div>' +
         '<button class="btn" data-act="quiz" style="margin-top:10px">こたえを見る</button><div class="a" hidden>' + safeRuby(s.kids_quiz.answer) + '</div></div>';
     }
     if (s.murals && s.murals.length) {
@@ -739,6 +761,21 @@
     var s = S.spots[id]; if (!s) return '';
     return '<button class="spot-link' + (S.visited[id] ? ' visited' : '') + '" data-act="open" data-id="' + esc(id) + '">' + (S.visited[id] ? '✓ ' : '') + esc(s.name.ja.replace(/（.*?）/g, '')) + '</button>';
   }
+  // マレーシア全体の流れ（timeline.json の national）。city は都市idの配列（空＝全体）
+  function nationalHtml(N) {
+    var names = {}; S.cities.forEach(function (c) { names[c.id] = c.name; });
+    var evs = N.events.filter(function (e) { return !kids() || e.kids; });
+    return '<section class="national"><h2 class="section-h">🇲🇾 ' + (kids() ? 'マレーシアの<ruby>歴史<rt>れきし</rt></ruby>と3つの<ruby>町<rt>まち</rt></ruby>' : esc(N.title)) + '</h2>' +
+      '<p class="' + (kids() ? 'kids-text' : 'era-sum') + '">' + (kids() ? safeRuby(N.kids_intro) : esc(N.intro)) + '</p><ol class="events">' +
+      evs.map(function (e) {
+        var here = (e.city || []).indexOf(S.cityId) >= 0;
+        var tags = (e.city && e.city.length ? e.city : ['all']).map(function (id) {
+          return '<span class="city-tag' + (id === S.cityId ? ' here' : '') + '">' + esc(id === 'all' ? 'マレーシア全体' : (names[id] || id)) + '</span>';
+        }).join('');
+        return '<li class="' + (here ? 'is-here' : '') + '"><span class="ev-year">' + esc(e.year) + '</span><div>' + tags + '<br>' +
+          (kids() ? safeRuby(e.kids) : '<span class="ev-text">' + esc(e.text) + '</span>') + '</div></li>';
+      }).join('') + '</ol></section>';
+  }
   function renderTimeline() {
     var T = S.timeline, h = '';
     if (kids()) {
@@ -763,6 +800,7 @@
           }).join('') + '</ol></section>';
       });
     }
+    if (T.national) h += nationalHtml(T.national);
     $('#timelineBox').innerHTML = h;
   }
 
@@ -822,7 +860,7 @@
     var list = tileList();
     caches.open(TILE_CACHE).then(function (c) { return Promise.all(list.map(function (u) { return c.match(u); })); }).then(function (hits) {
       var have = hits.filter(Boolean).length;
-      $('#tileInfo').textContent = S.city.name + 'のツアー範囲の地図（ズーム14〜17、全' + list.length + '枚）を端末に保存します。保存済み：' + have + '枚。Wi-Fi接続時がおすすめです。';
+      $('#tileInfo').textContent = S.city.name + 'のツアー範囲の地図（ズーム14〜17。郊外はスポット周辺のみ。全' + list.length + '枚）を端末に保存します。保存済み：' + have + '枚。Wi-Fi接続時がおすすめです。';
     });
   }
   function downloadTiles() {

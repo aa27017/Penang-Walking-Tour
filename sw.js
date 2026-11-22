@@ -1,6 +1,6 @@
 /* Service Worker — オフライン対応
  * 内容を更新したら VERSION を上げると、次回起動時に新しいファイルに入れ替わります。 */
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.1.0';
 const SHELL_CACHE = 'gt-shell-' + VERSION;
 const DATA_CACHE = 'gt-data-' + VERSION;
 const TILE_CACHE = 'gt-tiles-v1'; // 地図タイルはバージョン更新で消さない

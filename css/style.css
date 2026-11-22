@@ -391,3 +391,23 @@ main {
 .audio-bar { flex-wrap: nowrap; }
 .audio-bar .audio-play { min-width: 0; padding: 6px 10px; }
 .audio-bar .btn.small { padding: 6px 8px; }
+
+/* ---------- 交通移動・おすすめ時間帯（KL版で追加） ---------- */
+.best-time { margin: 8px 0 4px; padding: 8px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 15px; }
+.leg-box { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--surface-2); border-left: 5px solid var(--accent); }
+.leg-h { font-size: 13px; font-weight: 800; color: var(--text-2); margin-bottom: 4px; }
+.leg.leg-transit { text-align: left; font-size: 14px; color: var(--text); background: var(--surface-2); border-left: 5px solid var(--accent); border-radius: 0 10px 10px 0; padding: 8px 10px; margin: 4px 0 4px 18px; }
+.leg-arrow { font-weight: 800; color: var(--text-2); }
+.modes { display: inline-flex; flex-wrap: wrap; gap: 4px; vertical-align: middle; }
+.mode { display: inline-block; padding: 1px 8px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 800; white-space: nowrap; }
+.leg-time { font-size: 14px; }
+.leg-text { margin-top: 4px; font-size: 14px; line-height: 1.6; }
+.kids-guide { border: 3px dashed var(--kids); background: var(--kids-soft); margin: 10px 0; }
+.kids-guide h3 { margin: 0 0 6px; font-size: 18px; }
+.kids-guide ol { margin: 0; padding-left: 1.4em; font-size: 16px; line-height: 2; }
+.kids-guide li { margin: 4px 0; }
+.quiz.move { border-style: dashed; }
+.national { margin-top: 22px; }
+.national .events li.is-here { background: var(--accent-soft); border-radius: 8px; }
+.city-tag { display: inline-block; font-size: 12px; font-weight: 800; padding: 0 7px; border-radius: 6px; border: 1px solid var(--line); color: var(--text-2); margin-right: 4px; }
+.city-tag.here { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
